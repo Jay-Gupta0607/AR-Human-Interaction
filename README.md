@@ -25,5 +25,5 @@ The application extracts 21 3D skeletal keypoints from the detected hand in real
   * It checks if the Ring (16) and Pinky (20) fingers are folded.
   * Finally, it calculates the Euclidean distance between the Index and Middle fingertips to ensure they are spread apart into a "V" shape, preventing false positives from fingers held tightly together.
 
-Demo
+Demo:
 https://drive.google.com/file/d/1mwJocozMi0GPmvxwl-GvsNNuPwYquxee/view?usp=sharing
