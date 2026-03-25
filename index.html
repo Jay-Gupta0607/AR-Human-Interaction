@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Gesture Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #333333; /* Default Dark Grey */
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      transition: background-color 0.3s ease;
+    }
+    #status {
+      font-size: 3rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    video { display: none; }
+    canvas {
+      border: 4px solid white;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      max-width: 90%;
+      height: auto;
+      transform: scaleX(-1); /* Mirror image */
+    }
+    /* State Classes */
+    .pinch-state { background-color: #4CAF50 !important; } /* Green */
+    .victory-state { background-color: #2196F3 !important; } /* Blue */
+  </style>
+</head>
+<body>
+
+  <div id="status">Waiting for gesture...</div>
+  
+  <video id="video" autoplay playsinline></video>
+  <canvas id="output_canvas" width="640" height="480"></canvas>
+
+  <script>
+    const videoElement = document.getElementById('video');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const statusText = document.getElementById('status');
+
+    // Helper function to calculate 2D distance
+    function getDistance(p1, p2) {
+      return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+      let isPinching = false;
+      let isVictory = false;
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        
+        // --- 1. PINCH LOGIC ---
+        const thumbTip = landmarks[4];
+        const indexTip = landmarks[8];
+        if (getDistance(thumbTip, indexTip) < 0.05) {
+          isPinching = true;
+        }
+
+        // --- 2. VICTORY SIGN LOGIC ---
+        // A victory sign means Index & Middle are UP, Ring & Pinky are DOWN.
+        // Y-axis goes top (0) to bottom (1). So "UP" means tip.y < joint.y.
+        const indexUp = landmarks[8].y < landmarks[6].y;
+        const middleUp = landmarks[12].y < landmarks[10].y;
+        const ringDown = landmarks[16].y > landmarks[14].y;
+        const pinkyDown = landmarks[20].y > landmarks[18].y;
+        
+        // Ensure index and middle fingers are spread apart (the "V" shape)
+        const fingersSpread = getDistance(landmarks[8], landmarks[12]) > 0.05;
+
+        // If all conditions are met, it's a victory sign
+        if (indexUp && middleUp && ringDown && pinkyDown && fingersSpread) {
+          isVictory = true;
+          isPinching = false; // Override pinch if both somehow trigger
+        }
+
+        // --- DRAW LANDMARKS ---
+        for (let i = 0; i < landmarks.length; i++) {
+          canvasCtx.beginPath();
+          canvasCtx.arc(landmarks[i].x * canvasElement.width, landmarks[i].y * canvasElement.height, 4, 0, 2 * Math.PI);
+          canvasCtx.fillStyle = "#00ff00"; // Default green points
+          
+          // Highlight active points based on gesture
+          if (isPinching && (i === 4 || i === 8)) canvasCtx.fillStyle = "#ff0000";
+          if (isVictory && (i === 8 || i === 12)) canvasCtx.fillStyle = "#ffff00";
+          
+          canvasCtx.fill();
+        }
+      }
+
+      // --- TRIGGER UI ACTIONS ---
+      // Clear previous classes
+      document.body.className = ''; 
+
+      if (isVictory) {
+        document.body.classList.add('victory-state');
+        statusText.innerText = "✌️ Victory Sign!";
+      } else if (isPinching) {
+        document.body.classList.add('pinch-state');
+        statusText.innerText = "🤏 Pinch Detected!";
+      } else {
+        statusText.innerText = "Waiting for gesture...";
+      }
+      
+      canvasCtx.restore();
+    }
+
+    // Initialize MediaPipe
+    const hands = new Hands({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }});
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.6
+    });
+    hands.onResults(onResults);
+
+    // Initialize Camera
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({image: videoElement});
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  </script>
+</body>
+</html>
