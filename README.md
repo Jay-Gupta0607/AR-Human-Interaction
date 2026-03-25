@@ -10,7 +10,7 @@ How to Run
 This is a vanilla JavaScript application requiring no build tools, local servers, or package installations.
 
 1. Clone or download this repository.
-2. Double-click index.html file to open it in any modern web browser.
+2. Double-click `index.html` file to open it in any modern web browser.
 3. **Important:** Allow the browser to access your webcam when prompted.
 4. Hold your hand up to the camera to test the gestures:
    * **Pinch:** Bring your thumb and index finger together.
@@ -19,7 +19,7 @@ This is a vanilla JavaScript application requiring no build tools, local servers
 How it Works
 The application extracts 21 3D skeletal keypoints from the detected hand in real-time. 
 
-* **Pinch Detection:** The logic isolates **Landmark 4 (Thumb tip)** and **Landmark 8 (Index finger tip)**. It continuously calculates the 2D Euclidean distance between these two points. If the distance falls below a pre-defined threshold (`0.05`), the pinch state is triggered.
+* **Pinch Detection:** The logic isolates **Landmark 4 (Thumb tip)** and **Landmark 8 (Index finger tip)**. It continuously calculates the 2D Euclidean distance between these two points. If the distance falls below a pre-defined threshold (`0.1`), the pinch state is triggered.
 * **Victory Sign Detection:** This uses spatial coordinate comparisons. Because the Y-axis originates at the top of the screen (0), a finger is "up" if its tip has a smaller Y-value than its lower joint. 
   * It checks if the Index (8) and Middle (12) fingers are extended.
   * It checks if the Ring (16) and Pinky (20) fingers are folded.
